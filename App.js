@@ -1,7 +1,6 @@
 Ext.define('CustomApp', {
     extend: 'Rally.app.App',
     componentCls: 'app',
-
     items: [
         {
         xtype: 'container',
@@ -16,15 +15,6 @@ Ext.define('CustomApp', {
     launch: function() {
         var app = this;
 
-        app._setReleaseDate();
-    },
-
-    _setReleaseDate: function() {
-        var app = this; 
-
-//        var d = Ext.Date.add(new Date(), Ext.Date.DAY, 0);
-//        app.startDate = Ext.Date.clearTime(d);
-
         var releaseDateField = Ext.create('Ext.Container', {
             items: [{
                 itemId: 'release-Date',
@@ -35,7 +25,6 @@ Ext.define('CustomApp', {
                     select: app._loadData,
                     scope: app
                     }                  
-//                value: app.startDate
             }],
             renderTo: Ext.getBody().dom
         });
@@ -61,7 +50,12 @@ Ext.define('CustomApp', {
                 },
                 scope: app    
             },
-            fetch: ['FormattedID','ObjectID', 'Name', 'c_ReleaseDate']
+            fetch: [
+                'FormattedID',
+                'ObjectID', 
+                'Name', 
+                'c_ReleaseDate'
+            ]
         });
     },
 
@@ -107,34 +101,33 @@ Ext.define('CustomApp', {
             storyList = app._setFilter('000000000', storyList);
         }
         
-        if(app.testCaseStore) {
-            app.testCaseStore.setFilter(storyList);
-            app.testCaseStore.load();
-        } else {
-            app.testCaseStore = Ext.create('Rally.data.wsapi.Store', {
-                model: 'TestCase',
-                autoLoad: true,
-                filters: storyList,
-                limit: Infinity, 
-                listeners: {
-                    load: function(myStore, myData, success) {
-                        if(!app.testCaseGrid) {
-                            app._createGrid(myStore);
-                        }
-                    },
-                    scope: app    
-                },
-                fetch: ['FormattedID', 'Name', 'Owner', 'Project', 'WorkProduct', 'LastVerdict'],
-                hydrate: ['WorkProduct']
-            });
-        }
+        Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
+            models: ['testcase'],
+            autoLoad: true,
+            enableHierarchy: true,
+            filters: storyList,
+            limit: Infinity, 
+            fetch: [
+                'FormattedID', 
+                'Name', 
+                'Owner', 
+                'Project', 
+                'WorkProduct', 
+                'LastVerdict'
+            ]
+        }).then({
+            success: function(store) {
+                this._createGrid(store);
+            },
+            scope: app
+        });
     },
 
     _setFilter: function(story, cFilter) {
         var app = this;
 
         var dFilter = Ext.create('Rally.data.wsapi.Filter', {
-            property: 'WorkProduct.ObjectID',
+            property: 'Requirement.ObjectID',
             operator: '=',
             value: story
         });
@@ -146,16 +139,51 @@ Ext.define('CustomApp', {
         }
     },
 
-    _createGrid: function(myTestCaseStore) {
+    _createGrid: function(store) {
         var app = this;
 
-        app.testCaseGrid = Ext.create('Rally.ui.grid.Grid', {
-            store: myTestCaseStore,
-            columnCfgs: [         // Columns to display; must be the same names specified in the fetch: above in the wsapi data store
-                'FormattedID', 'Name', 'Owner', 'Project', 'WorkProduct', 'LasteVerdict'
-            ]
-        });
+        var modelNames = ['testcase'],
+            context = app.getContext();
 
-        app.add(app.testCaseGrid);    // add the grid Component to the app-level Container (by doing this.add, it uses the app container)
+        app.remove('gridboard');
+                    
+        app.add({
+            xtype: 'rallygridboard',
+            context: context,
+            itemId: 'gridboard',
+            modelNames: modelNames,
+            toggleState: 'grid',
+            stateful: false,
+            plugins: [
+                {
+                    ptype: 'rallygridboardactionsmenu',
+                    menuItems: [
+                        {
+                            text: 'Export...',
+                            handler: function() {
+                                window.location = Rally.ui.gridboard.Export.buildCsvExportUrl(
+                                    this.down('rallygridboard').getGridOrBoard());
+                            },
+                            scope: this
+                        }
+                    ],
+                    buttonConfig: {
+                        iconCls: 'icon-export'
+                    }
+                }
+            ],
+            gridConfig: {
+                store: store,
+                columnCfgs: [
+                    'FormattedID', 
+                    'Name', 
+                    'Owner', 
+                    'Project', 
+                    'WorkProduct', 
+                    'LastVerdict'
+                ]
+            },
+            height: this.getHeight()
+        });
     }
 });

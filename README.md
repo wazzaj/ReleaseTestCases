@@ -1,8 +1,10 @@
-Random App Name54106
-=========================
+Test Cases by Release Date
+==========================
 
 ## Overview
+This app will list all Test Cases associated with User Stories that have the specified Release Date (custom field: c_ReleaseDate)
 
+It also supports the exporting the data in CSV format.
 
 ## License
 
