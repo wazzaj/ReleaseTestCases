@@ -100,6 +100,8 @@ Ext.define('CustomApp', {
             console.log('No Entries');
             storyList = app._setFilter('000000000', storyList);
         }
+
+        console.log(storyList);
         
         Ext.create('Rally.data.wsapi.TreeStoreBuilder').build({
             models: ['testcase'],
@@ -127,7 +129,7 @@ Ext.define('CustomApp', {
         var app = this;
 
         var dFilter = Ext.create('Rally.data.wsapi.Filter', {
-            property: 'Requirement.ObjectID',
+            property: 'WorkProduct.ObjectID',
             operator: '=',
             value: story
         });
